@@ -1,0 +1,39 @@
+# Python Telegram Chatbot
+
+This is a simple Telegram chatbot developed in Python using the pyTelegramBotAPI library. The bot responds to messages received in a group or individual chat on Telegram.
+
+## Requirements
+
+Make sure you have the following dependencies installed before running the bot:
+
+- python-dotenv==1.0.1
+- pyTelegramBotAPI==4.16.1
+- requests==2.31.0
+
+You can install all dependencies by running:
+
+- pip install -r requirements.txt
+
+
+## Configuration
+
+Before running the bot, you need to obtain a Telegram token. Follow these steps:
+
+Create a `.env` file in the root directory of the project and add your Telegram token as follows:
+
+TELEGRAM_TOKEN=YOUR_TOKEN_HERE
+
+
+## Execution
+
+To run the bot, simply execute the `main.py` file:
+
+- python main.py
+
+The bot will now be active and respond to messages it receives on Telegram.
+
+## Bot Information
+
+- Bot Username: @JhonPythonBot
+- Bot Name: Test_python_bot
+- Bot Link: [JhonPythonBot](https://t.me/JhonPythonBot)
