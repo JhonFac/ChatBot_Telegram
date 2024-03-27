@@ -1,12 +1,17 @@
+# The above code is a Python script that is importing necessary modules and libraries for building a
+# Telegram bot. Here is a breakdown of what each line is doing:
 import os
 
 import requests
 import telebot
 from dotenv import load_dotenv
-from telebot.types import ReplyKeyboardMarkup, ReplyKeyboardRemove
+from telebot.types import ReplyKeyboardMarkup
 
+# The above code is a Python script that appears to be setting up a Telegram bot using the
+# `python-telegram-bot` library. It is loading environment variables from a `.env` file using
+# `load_dotenv()`, retrieving the Telegram token from the environment variables, and then creating a
+# new instance of a Telegram bot with the token. Additionally, an empty list `lista` is defined.
 load_dotenv()
-
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 bot = telebot.TeleBot (TELEGRAM_TOKEN)
 lista =[]
@@ -30,7 +35,7 @@ def bot_mensajes_texto(message):
         val_comand(message, user)
         return
 
-    if not user['status'] and message.text in ["Not taken off yet", "Already taken off", "Just took off"]:
+    if not user['status'] and message.text in ["Not taken off yet", "Already taken off"]:
         process(message, user)
         return
 
@@ -65,7 +70,7 @@ def set_data_list(message):
     lista.append(user)
     return user
 
-def get_frame(chat_id):
+def get_frame(chat_id:int):
     """
     The function `get_frame` searches for a user in a list by their chat_id and returns the user if
     found, otherwise returns False.
@@ -127,6 +132,11 @@ def delete_user(user):
     global lista
     lista.remove(user)
 
+def load_photo(user):
+    url = f"https://framex-dev.wadrid.net/api/video/Falcon%20Heavy%20Test%20Flight%20(Hosted%20Webcast)-wbSwFU6tY1c/frame/{user['frame']}/"
+    response = requests.get(url)
+    return response.content
+
 def process(message, user):
     """
     The function processes a message, checks a number, retrieves an image from a URL, sends the image to
@@ -139,15 +149,14 @@ def process(message, user):
     includes the user's frame number and the number of attempts they have made. This information is used
     within the `process` function to construct a URL for fetching a photo, determine the number of
     attempts left, and display
-    :return: If the `message.text` is equal to "Just took off", then the function will return without
+    :return: If the `user['attempts']` is equal to 0, then the function will return without
     executing any further code.
     """
     check_number(message, user)
-    if message.text == "Just took off": return
-    url = f"https://framex-dev.wadrid.net/api/video/Falcon%20Heavy%20Test%20Flight%20(Hosted%20Webcast)-wbSwFU6tY1c/frame/{user['frame']}/"
-    response = requests.get(url)
-    foto = response.content
-    attempts = 17- user['attempts']
+    if user['attempts'] == 0: return
+    foto = load_photo(user)
+    attempts = 17 - user['attempts']
+    print(f'{message.chat.id,}: {attempts}')
     bot.send_photo(
         message.chat.id,
         foto, 
@@ -159,7 +168,7 @@ def process(message, user):
         resize_keyboard=True,
         row_width=2
     )
-    markup.add("Not taken off yet", "Already taken off", "Just took off")
+    markup.add("Not taken off yet", "Already taken off")
     bot.send_message(message.chat.id, '¿Already taken off?', reply_markup=markup)
 
 def inval_comand(message, user):
@@ -195,7 +204,6 @@ def inval_comand(message, user):
     texto_html = '<b>Command not available, you must choose an option from one of the buttons between:</b>' + '\n'
     texto_html+= '<i>- Not taken off yet</i>' + '\n'
     texto_html+= '<i>- Already taken off</i>' + '\n'
-    texto_html+= '<i>- Just took off</i>' + '\n'
     bot.send_message(message.chat.id, texto_html, parse_mode="html")
 
 def val_comand(message, user):
@@ -244,8 +252,17 @@ def val_comand(message, user):
     texto_html = '<b>Command not available, you must choose an option from one of the buttons between:</b>' + '\n'
     texto_html+= '<i>- Not taken off yet</i>' + '\n'
     texto_html+= '<i>- Already taken off</i>' + '\n'
-    texto_html+= '<i>- Just took off</i>' + '\n'
     bot.send_message(message.chat.id, texto_html, parse_mode="html")
+
+def conditional_restart(user, message, texto_html):
+    update_frame(user, 0, 61695, 0, 0, True)
+    markup = ReplyKeyboardMarkup(
+    input_field_placeholder="Push button",
+    resize_keyboard=True
+    )
+    markup.row("/start")
+    bot.send_message(message.chat.id, texto_html, parse_mode="html", reply_markup=markup)
+
 
 def check_number(message, user):
     """
@@ -267,23 +284,11 @@ def check_number(message, user):
     current_number = int(user['frame'])
     comparison = message.text
 
-    if attempts > 16 or comparison == 'Just took off':
-        if current_number in [39612, 39613]:
-            texto_html = '<b>Found..!</b>' + '\n'
-            texto_html+= '<i>The frame just when the rocket 🚀 takes off</i>' + '\n'
-            texto_html+= "<b>If you want to try again /start</b>" + '\n'
-        else:
-            texto_html = '<b>Oh no.!</b>' + '\n'
-            texto_html+= '<i>his is not the frame 😨 when the rocket 🚀 takes offi</i>' + '\n'
-            texto_html+= "<b>let's start again /start</b>" + '\n'
-      
-        update_frame(user, 0, 61695, 0, 0, True)
-        markup = ReplyKeyboardMarkup(
-        input_field_placeholder="Push button",
-        resize_keyboard=True
-        )
-        markup.row("/start")
-        bot.send_message(message.chat.id, texto_html, parse_mode="html", reply_markup=markup)
+    if attempts > 16:
+        texto_html = '<b>Oh no.!</b>' + '\n'
+        texto_html+= '<i>this is not the frame 😨 when the rocket 🚀 takes off, and you ran out of attempts</i>' + '\n'
+        texto_html+= "<b>let's start again /start</b>" + '\n'
+        conditional_restart(user, message, texto_html)
         return
   
     elif comparison == 'Not taken off yet':
@@ -295,6 +300,17 @@ def check_number(message, user):
     if max_value - min_value == 1:
         current_number += 1
     
+
+    if current_number in [39612, 39613]:
+        texto_html = '<b>Found..!</b>' + '\n'
+        texto_html+= '<i>The frame just when the rocket 🚀 takes off</i>' + '\n'
+        texto_html+= "<b>If you want to try again /start</b>" + '\n'
+        bot.send_photo(
+            message.chat.id,
+            load_photo(user)
+            )
+        conditional_restart(user, message, texto_html)
+        return
 
     update_frame(
         user,
